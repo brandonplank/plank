@@ -1,2 +1,3 @@
 # plank
-My own WIP filetype, subject to change
+
+A description of this package.
