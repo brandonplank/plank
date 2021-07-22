@@ -1,3 +1,7 @@
 # plank
 
-A description of this package.
+### Support
+* macOS ✔️
+* Linux ✔️
+* Windows ✔️
+* BSD ❌
