@@ -34,7 +34,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
-          name: ${{env.RUNNER_OS}}Bin
+          name: ${{ runner.os }}Bin
           path: |
             Artifacts.zip
             
