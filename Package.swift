@@ -11,7 +11,6 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.4.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.4.1")),
-        .package(url: "https://github.com/tsolomko/SWCompression.git", from: "4.5.0"),
         .package(url: "https://github.com/sendyhalim/Swime", .branch("master"))
     ],
     targets: [
@@ -19,7 +18,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .executableTarget(
             name: "plank",
-            dependencies: ["Swime", "SWCompression", "CryptoSwift", .product(name: "ArgumentParser", package: "swift-argument-parser")]),
+            dependencies: ["Swime", "CryptoSwift", .product(name: "ArgumentParser", package: "swift-argument-parser")]),
         .testTarget(
             name: "plankTests",
             dependencies: ["plank"]),
