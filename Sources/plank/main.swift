@@ -24,6 +24,12 @@ struct plank: ParsableCommand {
     @Flag(name: [.customLong("decode"), .customShort("d")], help: "Decode the file. (.plank)")
     var decode = false
     
+    @Flag(name: [.customLong("encrypt"), .customShort("e")], help: "Encrypt the data.")
+    var encrypt = false
+    
+    @Option(name: [.customLong("keyiv"), .customShort("k")], help: "Specifies the key and iv to decrypt plank file.")
+    var keyiv: String?
+    
     @Flag(name: [.customLong("verbose"), .customShort("v")], help: "Show extra logging for debugging purposes")
     var verbose = false
     
@@ -45,9 +51,15 @@ struct plank: ParsableCommand {
         
         if(decode){
             if(Swime.mimeType(data: lastData!)?.type == .plank){
-                let files = PlankCore.Plank.Decode().run(lastData!)
+                var files:[Data]?
+                if keyiv != nil {
+                    files = PlankCore.Plank.Decode().run(lastData!, keyiv: keyiv!)!
+                } else {
+                    files = PlankCore.Plank.Decode().run(lastData!)!
+                }
+                if files == nil { print("An error happened while decoding"); throw ExitCode.failure }
                 var index: Int = 0
-                for file in files {
+                for file in files! {
                     do {
                         let mimeType = Swime.mimeType(bytes: [UInt8](file))
                         let fileExt = mimeType?.ext
@@ -69,7 +81,11 @@ struct plank: ParsableCommand {
                 throw ExitCode.failure
             }
         } else {
-            ReturnData = PlankCore.Plank.Encode().run(dataToPass)
+            if(encrypt){
+                ReturnData = PlankCore.Plank.Encode().run(dataToPass, encrypt: true)
+            } else {
+                ReturnData = PlankCore.Plank.Encode().run(dataToPass)
+            }
             
             if ReturnData == nil { throw ExitCode.failure }
             

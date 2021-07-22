@@ -24,7 +24,7 @@
         "repositoryURL": "https://github.com/brandonplank/PlankCore",
         "state": {
           "branch": "main",
-          "revision": "a06c73da1c39b538e42096685b145020e30b9b3d",
+          "revision": "f1fbf678acbb9790864721671098c39b620335b4",
           "version": null
         }
       },
@@ -51,7 +51,7 @@
         "repositoryURL": "https://github.com/brandonplank/Swime",
         "state": {
           "branch": "master",
-          "revision": "03bcf066061bd917f58db3fb7ef86fafb7b62940",
+          "revision": "74734acb4474fcccf48f2065f00fcb8c8ff2a535",
           "version": null
         }
       }
