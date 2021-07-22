@@ -8,6 +8,7 @@
 import Foundation
 import ArgumentParser
 import Swime
+import PlankCore
 
 // Ok here are my notes, going to keep it
 /*
@@ -154,7 +155,7 @@ struct plank: ParsableCommand {
         
         
         if(decode){
-            let files = Plank.Decode().run(lastData!)
+            let files = PlankCore.Plank.Decode().run(lastData!)
             
             var index: Int = 0
             for file in files {
@@ -176,7 +177,7 @@ struct plank: ParsableCommand {
             }
             
         } else {
-            ReturnData = Plank.Encode().run(dataToPass)
+            ReturnData = PlankCore.Plank.Encode().run(dataToPass)
             
             if ReturnData == nil { throw ExitCode.failure }
             
