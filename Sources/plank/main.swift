@@ -41,25 +41,32 @@ struct plank: ParsableCommand {
             }
         }
         
+        if lastData == nil { throw ExitCode.failure }
+        
         if(decode){
-            let files = PlankCore.Plank.Decode().run(lastData!)
-            var index: Int = 0
-            for file in files {
-                do {
-                    let mimeType = Swime.mimeType(bytes: [UInt8](file))
-                    let fileExt = mimeType?.ext
-                    if fileExt == nil {
-                        output = "\(index)"
-                    } else {
-                        output = "\(index).\(fileExt!)"
+            if(Swime.mimeType(data: lastData!)?.type == .plank){
+                let files = PlankCore.Plank.Decode().run(lastData!)
+                var index: Int = 0
+                for file in files {
+                    do {
+                        let mimeType = Swime.mimeType(bytes: [UInt8](file))
+                        let fileExt = mimeType?.ext
+                        if fileExt == nil {
+                            output = "\(index)"
+                        } else {
+                            output = "\(index).\(fileExt!)"
+                        }
+                        try file.write(to: URL(fileURLWithPath: output!))
+                        print("Saved file to: \(output!)")
+                    } catch {
+                        print("Bad file path!")
+                        throw ExitCode.failure
                     }
-                    try file.write(to: URL(fileURLWithPath: output!))
-                    print("Saved file to: \(output!)")
-                } catch {
-                    print("Bad file path!")
-                    throw ExitCode.failure
+                    index+=1
                 }
-                index+=1
+            } else {
+                print("File is not a .plank file!")
+                throw ExitCode.failure
             }
         } else {
             ReturnData = PlankCore.Plank.Encode().run(dataToPass)
