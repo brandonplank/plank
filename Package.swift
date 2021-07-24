@@ -12,7 +12,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.4.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.4.1")),
         .package(url: "https://github.com/brandonplank/Swime", .branch("master")),
-        .package(url: "https://github.com/brandonplank/PlankCore", .branch("main"))
+        .package(url: "https://github.com/Plank-Software/PlankCore", .branch("main"))
         
     ],
     targets: [
