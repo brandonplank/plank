@@ -35,7 +35,7 @@ struct plank: ParsableCommand {
     
     mutating func run() throws {
         var dataToPass = [Data]()
-        var ReturnData: Data? = nil
+        var ReturnData: PlankCore.Plank.PlankFile?
         var lastData: Data? = nil
         var Filenames = [String]()
         for file in file {
@@ -61,7 +61,7 @@ struct plank: ParsableCommand {
                 } else {
                     PlankStructure = PlankCore.Plank.Decode().run(lastData!)!
                 }
-                files = PlankStructure.PlankData
+                files = PlankStructure.PlankDataArray
                 filenames = PlankStructure.PlankFiles
                 
                 if files == nil { print("An error happened while decoding"); throw ExitCode.failure }
@@ -87,12 +87,12 @@ struct plank: ParsableCommand {
                 ReturnData = PlankCore.Plank.Encode().run(dataToPass, filenames: Filenames)
             }
             
-            if ReturnData == nil { throw ExitCode.failure }
+            if ReturnData?.PlankData == nil { throw ExitCode.failure }
             
             if((output) != nil){
                 do {
                     output = "\(output!).plank"
-                    try ReturnData!.write(to: URL(fileURLWithPath: output!))
+                    try ReturnData!.PlankData!.write(to: URL(fileURLWithPath: output!))
                     print("Saved file to: \(output!)")
                 } catch {
                     print("Bad file path!")
