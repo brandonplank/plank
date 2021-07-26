@@ -21,10 +21,10 @@
       },
       {
         "package": "PlankCore",
-        "repositoryURL": "https://github.com/brandonplank/PlankCore",
+        "repositoryURL": "https://github.com/Plank-Software/PlankCore",
         "state": {
           "branch": "main",
-          "revision": "f1fbf678acbb9790864721671098c39b620335b4",
+          "revision": "75c2e91d0255b496d34a8ac991e9f02d4a340647",
           "version": null
         }
       },
@@ -32,9 +32,9 @@
         "package": "Quick",
         "repositoryURL": "https://github.com/Quick/Quick",
         "state": {
-          "branch": null,
-          "revision": "f2b5a06440ea87eba1a167cab37bf6496646c52e",
-          "version": "1.3.4"
+          "branch": "main",
+          "revision": "cce35d2c0a1c71b9d80268f894056cfa4ba47810",
+          "version": null
         }
       },
       {
@@ -51,7 +51,7 @@
         "repositoryURL": "https://github.com/brandonplank/Swime",
         "state": {
           "branch": "master",
-          "revision": "74734acb4474fcccf48f2065f00fcb8c8ff2a535",
+          "revision": "aa37493c2c9c17262242fc1d49001560085117f9",
           "version": null
         }
       }

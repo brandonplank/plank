@@ -37,8 +37,10 @@ struct plank: ParsableCommand {
         var dataToPass = [Data]()
         var ReturnData: Data? = nil
         var lastData: Data? = nil
+        var Filenames = [String]()
         for file in file {
             let fileUrl = URL(fileURLWithPath: file)
+            Filenames.append(fileUrl.lastPathComponent)
             do {
                 lastData = try Data(contentsOf: fileUrl)
                 dataToPass.append(lastData!)
@@ -52,29 +54,27 @@ struct plank: ParsableCommand {
         if(decode){
             if(Swime.mimeType(data: lastData!)?.type == .plank){
                 var files:[Data]?
+                var filenames:[String]?
+                var PlankStructure: PlankCore.Plank.PlankFile
                 if keyiv != nil {
-                    files = PlankCore.Plank.Decode().run(lastData!, keyiv: keyiv!)!
+                    PlankStructure = PlankCore.Plank.Decode().run(lastData!, keyiv: keyiv!)!
                 } else {
-                    files = PlankCore.Plank.Decode().run(lastData!)!
+                    PlankStructure = PlankCore.Plank.Decode().run(lastData!)!
                 }
+                files = PlankStructure.PlankData
+                filenames = PlankStructure.PlankFiles
+                
                 if files == nil { print("An error happened while decoding"); throw ExitCode.failure }
-                var index: Int = 0
-                for file in files! {
+                if filenames == nil { print("An error happened while reading the file names"); throw ExitCode.failure }
+                for (index, file) in files!.enumerated() {
                     do {
-                        let mimeType = Swime.mimeType(bytes: [UInt8](file))
-                        let fileExt = mimeType?.ext
-                        if fileExt == nil {
-                            output = "\(index)"
-                        } else {
-                            output = "\(index).\(fileExt!)"
-                        }
+                        output = filenames![index]
                         try file.write(to: URL(fileURLWithPath: output!))
                         print("Saved file to: \(output!)")
                     } catch {
                         print("Bad file path!")
                         throw ExitCode.failure
                     }
-                    index+=1
                 }
             } else {
                 print("File is not a .plank file!")
@@ -82,9 +82,9 @@ struct plank: ParsableCommand {
             }
         } else {
             if(encrypt){
-                ReturnData = PlankCore.Plank.Encode().run(dataToPass, encrypt: true)
+                ReturnData = PlankCore.Plank.Encode().run(dataToPass, filenames: Filenames, encrypt: true)
             } else {
-                ReturnData = PlankCore.Plank.Encode().run(dataToPass)
+                ReturnData = PlankCore.Plank.Encode().run(dataToPass, filenames: Filenames)
             }
             
             if ReturnData == nil { throw ExitCode.failure }
