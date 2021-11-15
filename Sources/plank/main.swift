@@ -51,8 +51,8 @@ struct plank: ParsableCommand {
         
         if lastData == nil { throw ExitCode.failure }
         
-        if(decode){
-            if(Swime.mimeType(data: lastData!)?.type == .plank){
+        if decode {
+            if Swime.mimeType(data: lastData!)?.type == .plank {
                 var files:[Data]?
                 var filenames:[String]?
                 var PlankStructure: PlankCore.Plank.PlankFile
@@ -81,7 +81,7 @@ struct plank: ParsableCommand {
                 throw ExitCode.failure
             }
         } else {
-            if(encrypt){
+            if encrypt {
                 ReturnData = PlankCore.Plank.Encode().run(dataToPass, filenames: Filenames, encrypt: true)
             } else {
                 ReturnData = PlankCore.Plank.Encode().run(dataToPass, filenames: Filenames)
@@ -89,7 +89,7 @@ struct plank: ParsableCommand {
             
             if ReturnData?.PlankData == nil { throw ExitCode.failure }
             
-            if((output) != nil){
+            if output != nil {
                 do {
                     output = "\(output!).plank"
                     try ReturnData!.PlankData!.write(to: URL(fileURLWithPath: output!))
