@@ -20,8 +20,8 @@ jobs:
       - name: Create Holder Folder
         run: |
           mkdir bin/
-          cp .build/debug/plank bin/plank-debug
-          cp .build/release/plank bin/plank
+          cp .build/x86_64-unknown-windows-msvc/debug/plank.exe bin/plank-debug.exe
+          cp .build/x86_64-unknown-windows-msvc/release/plank.exe bin/plank.exe
           tar -a -c -f Artifacts.zip bin/*
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v2.2.4
