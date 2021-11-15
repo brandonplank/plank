@@ -28,4 +28,4 @@ jobs:
         with:
           name: ${{ runner.os }}Bin
           path: |
-            Artifacts.zip
+            bin/
