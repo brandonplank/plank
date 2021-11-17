@@ -27,8 +27,8 @@ struct plank: ParsableCommand {
     @Flag(name: [.customLong("encrypt"), .customShort("e")], help: "Encrypt the data.")
     var encrypt = false
     
-    @Option(name: [.customLong("keyiv"), .customShort("k")], help: "Specifies the key and iv to decrypt plank file.")
-    var keyiv: String?
+    @Option(name: [.customLong("keybag"), .customShort("k")], help: "Specifies the key and iv to decrypt plank file.")
+    var keybag: String?
     
     @Flag(name: [.customLong("verbose"), .customShort("v")], help: "Show extra logging for debugging purposes")
     var verbose = false
@@ -56,8 +56,8 @@ struct plank: ParsableCommand {
                 var files:[Data]?
                 var filenames:[String]?
                 var PlankStructure: PlankCore.Plank.PlankFile
-                if keyiv != nil {
-                    PlankStructure = PlankCore.Plank.Decode().run(lastData!, keyiv: keyiv!)!
+                if keybag != nil {
+                    PlankStructure = PlankCore.Plank.Decode().run(lastData!, keyiv: keybag!)!
                 } else {
                     PlankStructure = PlankCore.Plank.Decode().run(lastData!)!
                 }
