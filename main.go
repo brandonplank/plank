@@ -27,10 +27,8 @@ func main() {
 		fmt.Println("Running in verbose")
 	}
 
-	type data []byte
-
 	var filenames 	[]string
-	var readFiles	[]data
+	var readFiles	[]plankcore.Data
 
 	if files != nil {
 		for index, item := range *files {
