@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"github.com/akamensky/argparse"
 	"github.com/brandonplank/PlankCore"
+	"io/ioutil"
+	"os"
+	"strconv"
 )
 
 func main() {
@@ -71,13 +73,31 @@ func main() {
 	}
 
 	if *extract {
-		out := plankcore.PlankDecode(readFiles[0], *verbose)
+
+		file := readFiles[0]
+
+		magic := []byte{0x70, 0x6c, 0x61, 0x6e, 0x6b} // P l a n k
+		fileMagic := file[0x0 : 0x5]
+
+		if *verbose {
+			fmt.Printf("Magic:\n%s", hex.Dump(fileMagic))
+		}
+
+		if !bytes.Equal(magic, fileMagic) {
+			panic("File is not a .plank file!")
+		}
+
+		out := plankcore.PlankDecode(file, *verbose)
 		if *verbose {
 			fmt.Printf("Decoded\n")
 		}
 		
 		for i := 0; i < len(out.Data); i++ {
-			filename := out.Filenames[i]
+			var filename string
+			if out.Filenames == nil {
+				filename = strconv.Itoa(i)
+			}
+			filename = out.Filenames[i]
 			data     := out.Data[i]
 			fmt.Printf("Writing to %s\n", filename)
 
