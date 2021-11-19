@@ -29,8 +29,8 @@ func main() {
 		fmt.Println("Running in verbose")
 	}
 
-	var filenames 	[]string
-	var readFiles	[]plankcore.Data
+	var filenames []string
+	var readFiles []plankcore.Data
 
 	if files != nil {
 		for index, item := range *files {
@@ -57,7 +57,7 @@ func main() {
 
 	if *output != "" {
 		data := plankcore.PlankEncode(readFiles, filenames, *verbose)
-			
+
 		if *verbose {
 			fmt.Printf("Encoded\n")
 			fmt.Printf("%s", hex.Dump(data))
@@ -77,7 +77,7 @@ func main() {
 		file := readFiles[0]
 
 		magic := []byte{0x70, 0x6c, 0x61, 0x6e, 0x6b} // P l a n k
-		fileMagic := file[0x0 : 0x5]
+		fileMagic := file[0x0:0x5]
 
 		if *verbose {
 			fmt.Printf("Magic:\n%s", hex.Dump(fileMagic))
@@ -91,14 +91,15 @@ func main() {
 		if *verbose {
 			fmt.Printf("Decoded\n")
 		}
-		
+
 		for i := 0; i < len(out.Data); i++ {
 			var filename string
 			if out.Filenames == nil {
 				filename = strconv.Itoa(i)
+			} else {
+				filename = out.Filenames[i]
 			}
-			filename = out.Filenames[i]
-			data     := out.Data[i]
+			data := out.Data[i]
 			fmt.Printf("Writing to %s\n", filename)
 
 			err := os.WriteFile(filename, data, 0644)
