@@ -3,6 +3,8 @@ github.com/akamensky/argparse v1.3.1 h1:kP6+OyvR0fuBH6UhbE6yh/nskrDEIQgEA1SUXDPj
 github.com/akamensky/argparse v1.3.1/go.mod h1:S5kwC7IuDcEr5VeXtGPRVZ5o/FdhcMlQz4IZQuw64xA=
 github.com/brandonplank/PlankCore v0.0.0-20211120153134-b29aedc69c69 h1:U485nxdu2EpqCEG/adpH+nbrl6BYbXJvZU2A7i+Unho=
 github.com/brandonplank/PlankCore v0.0.0-20211120153134-b29aedc69c69/go.mod h1:4aNqD5tRoYuMcwINmTkUPfwJW4ucgO8yUnmNTnx9hCQ=
+github.com/brandonplank/PlankCore v0.0.0-20211120170607-4b97f7bfff4d h1:BrtetTyU1oP57/cUfWKUJw5zXUzmsmNzNjqgYCQ3oz8=
+github.com/brandonplank/PlankCore v0.0.0-20211120170607-4b97f7bfff4d/go.mod h1:4aNqD5tRoYuMcwINmTkUPfwJW4ucgO8yUnmNTnx9hCQ=
 github.com/yuin/goldmark v1.4.0/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=

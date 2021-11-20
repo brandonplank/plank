@@ -17,6 +17,8 @@ func main() {
 	var verbose *bool = parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
 	var output *string = parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
 	var extract *bool = parser.Flag("e", "extract", &argparse.Options{Required: false, Help: "Extracts the plank file"})
+	var compress *bool = parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
+
 	var files *[]os.File = parser.FileList("f", "files", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Files to be passed to the program"})
 
 	err := parser.Parse(os.Args)
@@ -56,7 +58,7 @@ func main() {
 	}
 
 	if *output != "" {
-		data := plankcore.PlankEncode(readFiles, filenames, *verbose, "")
+		data := plankcore.PlankEncode(readFiles, filenames, "", *compress, *verbose)
 
 		if *verbose {
 			fmt.Printf("Encoded\n")
