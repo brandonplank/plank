@@ -41,14 +41,14 @@ func main() {
 			data, err := ioutil.ReadAll(&item)
 			if err != nil {
 				panic(err)
-			}
-			defer item.Close()
-
+			}             
+			
 			if *verbose {
 				fmt.Printf("File: %d\tItem: %s\tSize: 0x%x\n", index+1, item.Name(), file.Size())
 			}
-
+			
 			filenames = append(filenames, item.Name())
+			item.Close()
 			readFiles = append(readFiles, data)
 		}
 	} else {
@@ -56,7 +56,7 @@ func main() {
 	}
 
 	if *output != "" {
-		data := plankcore.PlankEncode(readFiles, filenames, *verbose)
+		data := plankcore.PlankEncode(readFiles, filenames, *verbose, "")
 
 		if *verbose {
 			fmt.Printf("Encoded\n")
@@ -87,7 +87,7 @@ func main() {
 			panic("File is not a .plank file!")
 		}
 
-		out := plankcore.PlankDecode(file, *verbose)
+		out := plankcore.PlankDecode(file, *verbose, "")
 		if *verbose {
 			fmt.Printf("Decoded\n")
 		}
