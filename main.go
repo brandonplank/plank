@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/akamensky/argparse"
-	"github.com/brandonplank/PlankCore"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"path/filepath"
+	"brandonplank.org/plankcore"
+	"github.com/akamensky/argparse"
 )
 
 func main() {
@@ -16,7 +17,9 @@ func main() {
 
 	var verbose *bool = parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
 	var output *string = parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
-	var extract *bool = parser.Flag("e", "extract", &argparse.Options{Required: false, Help: "Extracts the plank file"})
+	var key *string = parser.String("k", "key", &argparse.Options{Required: false, Help: "Specify a key for a file"})
+	var decompress *bool = parser.Flag("d", "decompress", &argparse.Options{Required: false, Help: "Extracts the plank file"})
+	var encrypt *bool = parser.Flag("e", "encrypt", &argparse.Options{Required: false, Help: "Encrypt the plank file with a random key"})
 	var compress *bool = parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
 
 	var files *[]os.File = parser.FileList("f", "files", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Files to be passed to the program"})
@@ -43,13 +46,13 @@ func main() {
 			data, err := ioutil.ReadAll(&item)
 			if err != nil {
 				panic(err)
-			}             
-			
-			if *verbose {
-				fmt.Printf("File: %d\tItem: %s\tSize: 0x%x\n", index+1, item.Name(), file.Size())
 			}
-			
-			filenames = append(filenames, item.Name())
+
+			if *verbose {
+				fmt.Printf("File: %d\tItem: %s\tSize: 0x%x\n", index+1, filepath.Base(item.Name()), file.Size())
+			}
+
+			filenames = append(filenames, filepath.Base(item.Name()))
 			item.Close()
 			readFiles = append(readFiles, data)
 		}
@@ -58,7 +61,7 @@ func main() {
 	}
 
 	if *output != "" {
-		data := plankcore.PlankEncode(readFiles, filenames, "", *compress, *verbose)
+		data := plankcore.PlankEncode(readFiles, filenames, *encrypt, *compress, *verbose)
 
 		if *verbose {
 			fmt.Printf("Encoded\n")
@@ -74,7 +77,7 @@ func main() {
 		fmt.Printf("Wrote %s\n", *output)
 	}
 
-	if *extract {
+	if *decompress {
 
 		file := readFiles[0]
 
@@ -89,7 +92,7 @@ func main() {
 			panic("File is not a .plank file!")
 		}
 
-		out := plankcore.PlankDecode(file, *verbose, "")
+		out := plankcore.PlankDecode(file, *verbose, *key)
 		if *verbose {
 			fmt.Printf("Decoded\n")
 		}
