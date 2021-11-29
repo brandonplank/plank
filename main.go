@@ -13,16 +13,16 @@ import (
 )
 
 func main() {
-	parser := argparse.NewParser("plank", "Brandon Planks' custom archive filetype written in GO.")
+	parser := argparse.NewParser("plank", "Brandon Planks' custom archive filetype written in Go.")
 
-	var verbose *bool = parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
-	var output *string = parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
-	var key *string = parser.String("k", "key", &argparse.Options{Required: false, Help: "Specify a key for a file"})
-	var decompress *bool = parser.Flag("d", "decompress", &argparse.Options{Required: false, Help: "Extracts the plank file"})
-	var encrypt *bool = parser.Flag("e", "encrypt", &argparse.Options{Required: false, Help: "Encrypt the plank file with a random key"})
-	var compress *bool = parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
+	var verbose *bool		= parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
+	var output *string		= parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
+	var key *string			= parser.String("k", "key", &argparse.Options{Required: false, Help: "Specify a key for a file"})
+	var decompress *bool	= parser.Flag("d", "decompress", &argparse.Options{Required: false, Help: "Extracts the plank file"})
+	var encrypt *bool		= parser.Flag("e", "encrypt", &argparse.Options{Required: false, Help: "Encrypt the plank file with a random key"})
+	var compress *bool		= parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
 
-	var files *[]os.File = parser.FileList("f", "files", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Files to be passed to the program"})
+	var files *[]os.File	= parser.FileList("f", "files", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Files to be passed to the program"})
 
 	err := parser.Parse(os.Args)
 	if err != nil {
@@ -74,7 +74,6 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Wrote %s\n", *output)
 	}
 
 	if *decompress {
@@ -82,7 +81,7 @@ func main() {
 		file := readFiles[0]
 
 		magic := []byte{0x70, 0x6c, 0x61, 0x6e, 0x6b} // p l a n k
-		fileMagic := file[0x0:len(magic)]
+		fileMagic := file[:len(magic)]
 
 		if *verbose {
 			fmt.Printf("Magic:\n%s", hex.Dump(fileMagic))
@@ -94,7 +93,7 @@ func main() {
 
 		out := plankcore.PlankDecode(file, *verbose, *key)
 		if *verbose {
-			fmt.Printf("Decoded\n")
+			fmt.Printf("Finished constructing file(s)\n")
 		}
 
 		for i := 0; i < len(out.Data); i++ {

@@ -21,11 +21,9 @@ Static defines here
 type Data []byte
 
 const (
-	fFilename    = 1 << 0 // 1
-	fEncrypted   = 1 << 1 // 2
-	fCompressed  = 1 << 2 // 4
-	fMadeInGo    = 1 << 3 // 8
-	fMadeInSwift = 1 << 4 // 16
+	FilenameFlag   = 1 << 0 // 1
+	EncryptedFlag  = 1 << 1 // 2
+	CompressedFlag = 1 << 2 // 4
 )
 
 type EndSection struct {
@@ -155,7 +153,7 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 			panic(err.Error())
 		}
 		keybag := hex.EncodeToString(key)
-		fmt.Println("Key:", keybag)
+		fmt.Printf("Key:\t%s\n", keybag)
 
 		block, err := aes.NewCipher(key)
 		if err != nil {
@@ -172,7 +170,7 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 			panic(err.Error())
 		}
 		if verbose {
-			fmt.Println("Nonce:", hex.EncodeToString(nonce))
+			fmt.Printf("Nonce:\t0x%s\n", hex.EncodeToString(nonce))
 		}
 	}
 
@@ -235,17 +233,15 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 
 	var flags byte
 	if filenames != nil {
-		flags |= fFilename
+		flags |= FilenameFlag
 	}
 
 	if compress {
-		flags |= fCompressed
+		flags |= CompressedFlag
 	}
 
-	flags |= fMadeInGo
-
 	if encrypt {
-		flags |= fEncrypted
+		flags |= EncryptedFlag
 	}
 
 	// Append flags
@@ -320,23 +316,11 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 
 	flags := HeaderSection[0x7]
 
-	hasFilenames := flags&fFilename > 0
-	isEncrypted := flags&fEncrypted > 0
-	isCompressed := flags&fCompressed > 0
+	hasFilenames := flags&FilenameFlag > 0
+	isEncrypted := flags&EncryptedFlag > 0
+	isCompressed := flags&CompressedFlag > 0
 
-	if flags&fMadeInSwift > 0 {
-		if verbose {
-			fmt.Println("Archived by Swift")
-		}
-	}
-
-	if flags&fMadeInGo > 0 {
-		if verbose {
-			fmt.Println("Archived by Golang")
-		}
-	}
-
-	if flags&fEncrypted > 0 && keybag == "" {
+	if isEncrypted && keybag == "" {
 		panic("The file is encrypted, you need a key!")
 	}
 
@@ -373,10 +357,8 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 
 	for i := 0; i < len(SectionTwoRead); i++ {
 		for j := 0; j < len(SectionTwoRead[i]); j++ {
-			// fmt.Printf("trackArray[%d] <- %d\n", j, SectionTwoRead[i][j])
 			trackArray[j] = SectionTwoRead[i][j]
 			if j == len(SectionTwoRead[i])-1 {
-				// fmt.Println(trackArray)
 				off := int64(binary.LittleEndian.Uint64(trackArray))
 				SectionDefines.CombinedOffsets = append(SectionDefines.CombinedOffsets, off)
 			}
@@ -384,7 +366,6 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 	}
 
 	// Seperate offsets
-
 	for index, item := range SectionDefines.CombinedOffsets {
 		if index%2 == 0 {
 			SectionDefines.StartOffsets = append(SectionDefines.StartOffsets, item)
@@ -441,7 +422,7 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 			nonce, cipher := PlankDecoded.Data[i][:nonceSize], PlankDecoded.Data[i][nonceSize:]
 			if i < 1 {
 				if verbose {
-					fmt.Println("Nonce:", hex.EncodeToString(nonce))
+					fmt.Printf("Nonce:\t0x%s\n", hex.EncodeToString(nonce))
 				}
 			}
 			PlankDecoded.Data[i], _ = aesGCM.Open(nil, nonce, cipher, nil)
@@ -460,11 +441,6 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 		endOfEndSectionOffset := startEndSectionOffset + sizeOfEndSectionSection - 1
 		EndSection := data[startEndSectionOffset+1 : endOfEndSectionOffset+1]
 
-		// for i := 0; i < len(FilenameSection); i++ {
-		// 	tempFilename = tempFilename + string(FilenameSection[i])
-		// }
-		// PlankDecoded.Filenames = strings.Split(tempFilename, "\\n")
-
 		PlankDecoded.Filenames = decodeEnd(EndSection)
 	}
 	return PlankDecoded
@@ -479,7 +455,14 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
  00000001 Is the hasFilename flag
  00000010 Is the encryption flag
  00000100 Is the made in go flag
- 00001000 Is the made in swift flag (not used)
+
+ You can or bits for flags
+
+	    |--> Encryption 1 << 1
+	    |
+	    | |-> Filename 1 << 0
+ 0  0 0 1 1 -> filenames and encrypted
+ 16 8 4 2 1
 
 
  Regular encoding/decoding header
