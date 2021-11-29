@@ -107,6 +107,7 @@ func encodeEnd(filenames []string, hashes []string) []byte {
 	var end EndSection
 
 	end.Filenames = filenames
+	end.FileHashes = hashes
 
 	var buf bytes.Buffer
 
@@ -151,7 +152,6 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 	var nonce []byte
 
 	if encrypt {
-		fmt.Println("Encrypting")
 		if _, err := rand.Read(key); err != nil {
 			panic(err.Error())
 		}
@@ -180,30 +180,25 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 	var hashes []string
 
 	for index, item := range data {
+		dataHash := sha256.Sum256(item)
+		hashes = append(hashes, hex.EncodeToString(dataHash[:]))
+		if verbose {
+			fmt.Printf("File %d sha256:\t%s\n", index+1, hex.EncodeToString(dataHash[:]))
+		}
 
-		// Handle encryption first
 		if encrypt {
 			item = aesGCM.Seal(nonce, nonce, item, nil)
 		}
 
 		if filenames != nil {
 			if len(data) != len(filenames) {
-				panic("Must have a = number of data and filenames")
+				panic("Must have an equal number of data and filenames")
 			}
 			SectionDefines.FileNames = append(SectionDefines.FileNames, filenames[index])
 		}
 
-		hash := sha256.New()
-		fileHash := hash.Sum(item)
-		hashes = append(hashes, hex.EncodeToString(fileHash))
-		if verbose {
-			fmt.Printf("File %d sha256:\t%s\n", index + 1, hex.EncodeToString(fileHash))
-		}
-
 		if compress {
 			compressed := GZipCompress(item)
-			fileHash := hash.Sum(compressed)
-			hashes = append(hashes, hex.EncodeToString(fileHash))
 			SectionDefines.DataSectionSizes = append(SectionDefines.DataSectionSizes, int64(len(compressed)))
 			SectionDefines.DataCombined = append(SectionDefines.DataCombined, compressed...)
 		} else {
@@ -307,7 +302,7 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 	return SectionDefines.FormedData
 }
 
-func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
+func PlankDecode(data Data, verbose bool, verify bool, keybag string) PlankDecoded_ {
 	var PlankDecoded PlankDecoded_
 
 	HeaderSection := data[0x0:0x08]
@@ -433,144 +428,157 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 		}
 	}
 
-	if hasFilenames {
-		var totalSize int64
+	var totalSize int64
 
-		for range data {
-			totalSize++
+	for range data {
+		totalSize++
+	}
+
+	startEndSectionOffset := SectionDefines.EndOffsets[len(SectionDefines.EndOffsets)-1]
+	sizeOfEndSectionSection := totalSize - startEndSectionOffset
+	endOfEndSectionOffset := startEndSectionOffset + sizeOfEndSectionSection - 1
+	EndSection := data[startEndSectionOffset+1 : endOfEndSectionOffset+1]
+
+	PlankDecoded.Filenames, PlankDecoded.Hashes = decodeEnd(EndSection)
+
+	if verify {
+		for i := 0; i < int(SectionDefines.DataSections); i++ {
+			//Verify hash is told to
+			if verify {
+				hash := sha256.Sum256(PlankDecoded.Data[i])
+				dataHash := hex.EncodeToString(hash[:])
+				if dataHash != PlankDecoded.Hashes[i] {
+					fmt.Printf("Mismatch: %s\t%s\n", dataHash, PlankDecoded.Hashes[i])
+					panic("Failed to verify the hash for " + PlankDecoded.Filenames[i])
+				}
+				fmt.Printf("%s passed checksum\n", PlankDecoded.Filenames[i])
+			}
 		}
-
-		startEndSectionOffset := SectionDefines.EndOffsets[len(SectionDefines.EndOffsets)-1]
-		sizeOfEndSectionSection := totalSize - startEndSectionOffset
-		endOfEndSectionOffset := startEndSectionOffset + sizeOfEndSectionSection - 1
-		EndSection := data[startEndSectionOffset+1 : endOfEndSectionOffset+1]
-
-		PlankDecoded.Filenames, PlankDecoded.Hashes = decodeEnd(EndSection)
 	}
 	return PlankDecoded
 }
 
 // Ok here are my notes, going to keep it
 /*
- Header
- Byte 1 - 5 will contain plank (the file type)
+ Hader
+ Byte 1- 5 will contain plank (the file type)
  Byte 8 contains the flags
 
  00000001 Is the hasFilename flag
  00000010 Is the encryption flag
  00000100 Is the made in go flag
 
- You can or bits for flags
+You can or bits for flags
 
-	    |--> Encryption 1 << 1
+    |--> Encryption 1 << 1
 	    |
 	    | |-> Filename 1 << 0
- 0  0 0 1 1 -> filenames and encrypted
+ 0  0 0 1 1 -> filenames ad encrypted
  16 8 4 2 1
 
 
- Regular encoding/decoding header
- | 0x70 0x6c 0x61 0x6e 0x6b 0x00 0x00 0x00 |
+Regular encoding/decoding header
+ | 0x70 0x6c 0x61 0x6e 0x6b 0x00 x00 0x00 |
 
- Section one
- Byte 1 - 8 will contain the size of the size mapping section
+Section one
+ Byte 1 - 8 ill contain the size of the size mapping section
  Will hold a 64 bit number
- | 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 |
+ | 0x00 0x00 0x00 0x00 0x0 0x00 0x00 0x00 |
 
- Example
- | 0x39 0x39 0x39 0x39 0x39 0x39 0x39 0x39 | Int
+Example
+ | 0x39 x39 0x39 0x39 0x39 0x39 0x39 0x39 | Int
 
 
- Section two, size will be based off the number in section one
- Needs to be in 16 byte intervals as that is how big a section addresser is
+Section two, size will be based off the number in section one
+ Needs to be in 16 byte intervals as that is how big a sectionaddresser is
 
- Section 2 will contain the amount of sections in section 3-max
- | 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Beginning of sec3 address
+Section 2 will contain the amount of sections in section 3-max
+ | 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Beginning of sec3 ddress
  | 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | End of sec3 address
 
- | 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Beginning of sec4 address
+| 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Beginning of sec4 address
  | 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | End of sec4 address
 
- etc
+etc
 
- Section 3
+Section 3
  Some data
- | 0x70 0x6f 0x67 0x67 0x65 0x72 0x73 0x00 | p o g g e r s
+ | 0x70 0xf 0x67 0x67 0x65 0x72 0x73 0x00 | p o g g e r s
 
- Section 4
+Section 4
  Some data
- | 0x73 0x77 0x69 0x66 0x74 0x73 0x77 0x69 | s w i f t s w i
+ | 0x73 0x7 0x69 0x66 0x74 0x73 0x77 0x69 | s w i f t s w i
 
- end of sizeof(sec1) + sizeof(sec2) is Beginning of sec3 address(the beginning of sec3)
+end of sizeof(sec1) + sizeof(sec2) is Beginning of sec3 address(the beginning of sec3)
 
- sizeof(sec1) + sizeof(sec2) + sizeof(sec3) is the end of sec3
+sizeof(sec1) + sizeof(sec2) + sizeof(sec3) is the end of sec3
 
- so the current setup would look like
- | 0x20 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | 32 bytes in section 2, as defined here take this and devide by 16 and we have 2 data sections
+so the current setup would look like
+ | 0x20 0x00 0x00 0x00 0x00 0x00 0x000x00 | 32 bytes in section 2, as defined here take this and devide by 16 and we have 2 data sections
  | 0x29 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 3 start address
  | 0x30 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 3 end address
- | 0x31 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 4 start address
+ | 0x31 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 4 start addres
  | 0x38 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 4 end address
  | 0x70 0x6f 0x67 0x67 0x65 0x72 0x73 0x00 | Data 1
  | 0x73 0x77 0x69 0x66 0x74 0x73 0x77 0x69 | Data 2
 
- Note data size can differ along with section numbers
+Note data size can differ along with section numbers
 
- When decoding it, we first look at the first 8 bytes
- | 0x20 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | <- This shows us how many bytes is in section 2
+When decoding it, we first look at the first 8 bytes
+ | 0x20 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | <- This hows us how many bytes is in section 2
 
- From here, we cal calculate how many files/data are stored in our filetype
- There are 16 bytes in each section definition, the start and end addresses 8 bytes for the start, 8 bytes for the end
+From here, we cal calculate how many files/data are stored in our filetype
+ There are 16 bytes in each section definition, the start and end addresses8 bytes for the start, 8 bytes for the end
 
- So, if section 2 has 32 bytes, we know there are 2 files in the data section
+So, if section 2 has 32 bytes, we know there are 2 files in the data section
  Formula
 
- files = bytes / 16
+files = bytes / 16
 
- Now, all we have to do is read all the values in
- | 0x29 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 3 start address
+Now, all we have to do is read all the values in
+ | 0x29 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Secton 3 start address
  | 0x30 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 3 end address
- | 0x31 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 4 start address
+ | 0x31 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 4 start addres
  | 0x38 0x00 0x00 0x00 0x00 0x00 0x00 0x00 | Section 4 end address
 
- They are 8 bytes each (64 bit)
+They are 8 bytes each (64 bit)
 
- Once we have that, we have the offsets for the actual files data sections
+Once we have that, we have the offsets for the actual files data sections
 
- | 0x70 0x6f 0x67 0x67 0x65 0x72 0x73 0x00 | Data 1
+| 0x70 0x6f 0x67 0x67 0x65 0x72 0x73 0x00 | Data 1
  | 0x73 0x77 0x69 0x66 0x74 0x73 0x77 0x69 | Data 2
 
- These can have different data, i am just doing a simple demo, here is a more complex one with different lens
+These can have different data, i am just doing a simple demo, here is a more complex one with different lens
 
- | 0x54 0x68 0x69 0x73 0x20 0x69 0x73 0x20 | This is
- | 0x70 0x72 0x65 0x74 0x74 0x79 0x20 0x69 | pretty i
+| 0x54 0x68 0x69 0x73 0x20 0x69 0x73 0x20 | This is
+ | 0x70 0x72 0x65 0x74 0x74 0x79 0x20 0x69 | pretty
  | 0x6e 0x74 0x65 0x72 0x65 0x73 0x74 0x69 | nteresti
  | 0x6e 0x67 0x2c 0x20 0x69 0x74 0x73 0x20 | ng, its
  | 0x73 0x6f 0x20 0x63 0x6f 0x6f 0x6c 0x20 | so cool
- | 0x77 0x68 0x61 0x74 0x20 0x63 0x6f 0x64 | what cod
+ | 0x77 0x68 0x61 0x74 0x20 0x63 0x6f 0x64 | what co
  | 0x65 0x20 0x63 0x61 0x6e 0x20 0x64 0x6f | e can do
  | 0x53 0x77 0x69 0x66 0x74 0x20 0x69 0x73 | Swift is
  | 0x20 0x67 0x6f 0x6f 0x64 0x2c 0x20 0x66 |  good, f
  | 0x69 0x72 0x65 0x20 0x69 0x73 0x20 0x62 | ire is b
  | 0x61 0x64 0x20 0x6c 0x6d 0x61 0x6f 0x00 | ad lmao
 
- And it has no problems distinguising between any data!
+And it has no problems distinguising between any data!
 
- After this, we store all the filenames in a structure
+After this, we store all the filenames in a structure
  that looks like this
 
- pseudocode
+pseudocode
 
- EndSection
-	Filenames[]
+EndSection
+	Filenames[
  end
 
 
- this gets appended to the data section, the size of this
+this gets appended to the data section, the size of this
  section is found by taking the total size of the plank
  file and substracting the final data sections offset
 
- dataSize - finalDataOff = EndSectionSize
+dataSize - finalDataOff = EndSectionSize
 
- then just convert the bytes back into the struct with gob
+then just convert the bytes back into the struct with gob
 */

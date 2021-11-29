@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"path/filepath"
+	"strconv"
 	"brandonplank.org/plankcore"
 	"github.com/akamensky/argparse"
 )
@@ -15,14 +15,15 @@ import (
 func main() {
 	parser := argparse.NewParser("plank", "Brandon Planks' custom archive filetype written in Go.")
 
-	var verbose *bool		= parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
-	var output *string		= parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
-	var key *string			= parser.String("k", "key", &argparse.Options{Required: false, Help: "Specify a key for a file"})
-	var decompress *bool	= parser.Flag("d", "decompress", &argparse.Options{Required: false, Help: "Extracts the plank file"})
-	var encrypt *bool		= parser.Flag("e", "encrypt", &argparse.Options{Required: false, Help: "Encrypt the plank file with a random key"})
-	var compress *bool		= parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
+	var verbose *bool = parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
+	var output *string = parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
+	var key *string = parser.String("k", "key", &argparse.Options{Required: false, Help: "Specify a key for a file"})
+	var decompress *bool = parser.Flag("d", "decompress", &argparse.Options{Required: false, Help: "Extracts the plank file"})
+	var encrypt *bool = parser.Flag("e", "encrypt", &argparse.Options{Required: false, Help: "Encrypt the plank file with a random key"})
+	var compress *bool = parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
+	var verify *bool = parser.Flag("s", "verify", &argparse.Options{Required: false, Help: "Verify the files using sha256"})
 
-	var files *[]os.File	= parser.FileList("f", "files", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Files to be passed to the program"})
+	var files *[]os.File = parser.FileList("f", "file", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Files to be passed to the program"})
 
 	err := parser.Parse(os.Args)
 	if err != nil {
@@ -91,7 +92,7 @@ func main() {
 			panic("File is not a .plank file!")
 		}
 
-		out := plankcore.PlankDecode(file, *verbose, *key)
+		out := plankcore.PlankDecode(file, *verbose, *verify, *key)
 		if *verbose {
 			fmt.Printf("Finished constructing file(s)\n")
 		}
