@@ -81,8 +81,8 @@ func main() {
 
 		file := readFiles[0]
 
-		magic := []byte{0x70, 0x6c, 0x61, 0x6e, 0x6b} // P l a n k
-		fileMagic := file[0x0:0x5]
+		magic := []byte{0x70, 0x6c, 0x61, 0x6e, 0x6b} // p l a n k
+		fileMagic := file[0x0:len(magic)]
 
 		if *verbose {
 			fmt.Printf("Magic:\n%s", hex.Dump(fileMagic))
