@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/gob"
 	"encoding/hex"
@@ -27,7 +28,8 @@ const (
 )
 
 type EndSection struct {
-	Filenames []string
+	Filenames  []string
+	FileHashes []string
 }
 
 type StaticDefines_ struct {
@@ -40,6 +42,7 @@ type StaticDefines_ struct {
 type PlankDecoded_ struct {
 	Data      []Data
 	Filenames []string
+	Hashes    []string
 	Keybag    string
 }
 
@@ -100,7 +103,7 @@ func GZipDecompress(s []byte) []byte {
 	return data
 }
 
-func encodeEnd(filenames []string) []byte {
+func encodeEnd(filenames []string, hashes []string) []byte {
 	var end EndSection
 
 	end.Filenames = filenames
@@ -112,7 +115,7 @@ func encodeEnd(filenames []string) []byte {
 	return GZipCompress(buf.Bytes())
 }
 
-func decodeEnd(data []byte) []string {
+func decodeEnd(data []byte) ([]string, []string) {
 	var end EndSection
 
 	decompress := GZipDecompress(data)
@@ -121,7 +124,7 @@ func decodeEnd(data []byte) []string {
 
 	decoder.Decode(&end)
 
-	return end.Filenames
+	return end.Filenames, end.FileHashes
 }
 
 var StaticDefines StaticDefines_
@@ -174,6 +177,8 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 		}
 	}
 
+	var hashes []string
+
 	for index, item := range data {
 
 		// Handle encryption first
@@ -188,8 +193,17 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 			SectionDefines.FileNames = append(SectionDefines.FileNames, filenames[index])
 		}
 
+		hash := sha256.New()
+		fileHash := hash.Sum(item)
+		hashes = append(hashes, hex.EncodeToString(fileHash))
+		if verbose {
+			fmt.Printf("File %d sha256:\t%s\n", index + 1, hex.EncodeToString(fileHash))
+		}
+
 		if compress {
 			compressed := GZipCompress(item)
+			fileHash := hash.Sum(compressed)
+			hashes = append(hashes, hex.EncodeToString(fileHash))
 			SectionDefines.DataSectionSizes = append(SectionDefines.DataSectionSizes, int64(len(compressed)))
 			SectionDefines.DataCombined = append(SectionDefines.DataCombined, compressed...)
 		} else {
@@ -288,17 +302,7 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 
 	SectionDefines.FormedData = append(SectionDefines.FormedData, SectionDefines.DataCombined...)
 
-	// if SectionDefines.FileNames != nil {
-	// 	for index, file := range SectionDefines.FileNames {
-	// 		SectionDefines.FilenamesCombined = append(SectionDefines.FilenamesCombined, []byte(file)...)
-	// 		if index != len(SectionDefines.FileNames)-1 {
-	// 			SectionDefines.FilenamesCombined = append(SectionDefines.FilenamesCombined, StaticDefines.StringTerminator...)
-	// 		}
-	// 	}
-	// 	SectionDefines.FormedData = append(SectionDefines.FormedData, SectionDefines.FilenamesCombined...)
-	// }
-
-	SectionDefines.FormedData = append(SectionDefines.FormedData, encodeEnd(SectionDefines.FileNames)...)
+	SectionDefines.FormedData = append(SectionDefines.FormedData, encodeEnd(SectionDefines.FileNames, hashes)...)
 
 	return SectionDefines.FormedData
 }
@@ -441,7 +445,7 @@ func PlankDecode(data Data, verbose bool, keybag string) PlankDecoded_ {
 		endOfEndSectionOffset := startEndSectionOffset + sizeOfEndSectionSection - 1
 		EndSection := data[startEndSectionOffset+1 : endOfEndSectionOffset+1]
 
-		PlankDecoded.Filenames = decodeEnd(EndSection)
+		PlankDecoded.Filenames, PlankDecoded.Hashes = decodeEnd(EndSection)
 	}
 	return PlankDecoded
 }
