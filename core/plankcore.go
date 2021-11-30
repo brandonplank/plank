@@ -140,7 +140,7 @@ func init() {
 	SectionDefines.One = 8
 }
 
-func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, verbose bool) []byte {
+func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, encryption_key string, verbose bool) []byte {
 	if verbose && compress {
 		fmt.Println("Compressing data")
 	}
@@ -152,9 +152,14 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 	var nonce []byte
 
 	if encrypt {
-		if _, err := rand.Read(key); err != nil {
-			panic(err.Error())
+		if encryption_key == "" {
+			if _, err := rand.Read(key); err != nil {
+				panic(err.Error())
+			}
+		} else {
+			key, _ = hex.DecodeString(encryption_key)
 		}
+
 		keybag := hex.EncodeToString(key)
 		fmt.Printf("Key:\t%s\n", keybag)
 
@@ -302,7 +307,7 @@ func PlankEncode(data []Data, filenames []string, encrypt bool, compress bool, v
 	return SectionDefines.FormedData
 }
 
-func PlankDecode(data Data, verbose bool, verify bool, keybag string) PlankDecoded_ {
+func PlankDecode(data Data, verbose bool, verify bool, encryption_key string) PlankDecoded_ {
 	var PlankDecoded PlankDecoded_
 
 	HeaderSection := data[0x0:0x08]
@@ -319,7 +324,7 @@ func PlankDecode(data Data, verbose bool, verify bool, keybag string) PlankDecod
 	isEncrypted := flags&EncryptedFlag > 0
 	isCompressed := flags&CompressedFlag > 0
 
-	if isEncrypted && keybag == "" {
+	if isEncrypted && encryption_key == "" {
 		panic("The file is encrypted, you need a key!")
 	}
 
@@ -392,8 +397,8 @@ func PlankDecode(data Data, verbose bool, verify bool, keybag string) PlankDecod
 	var nonceSize int
 	var aesGCM cipher.AEAD
 
-	if keybag != "" {
-		key, _ = hex.DecodeString(keybag)
+	if encryption_key != "" {
+		key, _ = hex.DecodeString(encryption_key)
 		block, err := aes.NewCipher(key)
 		if err != nil {
 			panic(err.Error())
@@ -412,7 +417,7 @@ func PlankDecode(data Data, verbose bool, verify bool, keybag string) PlankDecod
 			PlankDecoded.Data = append(PlankDecoded.Data, data[SectionDefines.StartOffsets[i]:SectionDefines.EndOffsets[i]+1])
 		}
 
-		if keybag != "" {
+		if encryption_key != "" {
 			if i < 1 {
 				if verbose {
 					fmt.Println("Extracting nonce")
@@ -448,10 +453,16 @@ func PlankDecode(data Data, verbose bool, verify bool, keybag string) PlankDecod
 				hash := sha256.Sum256(PlankDecoded.Data[i])
 				dataHash := hex.EncodeToString(hash[:])
 				if dataHash != PlankDecoded.Hashes[i] {
-					fmt.Printf("Mismatch: %s\t%s\n", dataHash, PlankDecoded.Hashes[i])
-					panic("Failed to verify the hash for " + PlankDecoded.Filenames[i])
+					if isEncrypted {
+						fmt.Println("The encryption key may not be correct")
+					}
+					fmt.Printf("Mismatch: %s\n", PlankDecoded.Filenames[i])
+					fmt.Printf("Orig:\t%s\n", PlankDecoded.Hashes[i])
+					fmt.Printf("Current:\t%s\n", dataHash)
+					//panic("Failed to verify the hash for " + PlankDecoded.Filenames[i])
+				} else {
+					fmt.Printf("%s passed\n", PlankDecoded.Filenames[i])
 				}
-				fmt.Printf("%s passed checksum\n", PlankDecoded.Filenames[i])
 			}
 		}
 	}
@@ -570,7 +581,8 @@ After this, we store all the filenames in a structure
 pseudocode
 
 EndSection
-	Filenames[
+	string Filenames[]
+	string FileHashes[]
  end
 
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/hex"
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,6 +19,7 @@ func main() {
 	var verbose *bool = parser.Flag("v", "verbose", &argparse.Options{Required: false, Help: "Prints more info"})
 	var output *string = parser.String("o", "output", &argparse.Options{Required: false, Help: "Send to .plank file"})
 	var key *string = parser.String("k", "key", &argparse.Options{Required: false, Help: "Specify a key for a file"})
+	var password *string = parser.String("p", "password", &argparse.Options{Required: false, Help: "Specify a password for a file"})
 	var decompress *bool = parser.Flag("d", "decompress", &argparse.Options{Required: false, Help: "Extracts the plank file"})
 	var encrypt *bool = parser.Flag("e", "encrypt", &argparse.Options{Required: false, Help: "Encrypt the plank file with a random key"})
 	var compress *bool = parser.Flag("c", "compress", &argparse.Options{Required: false, Help: "Compress using GZip"})
@@ -62,7 +64,13 @@ func main() {
 	}
 
 	if *output != "" {
-		data := plankcore.PlankEncode(readFiles, filenames, *encrypt, *compress, *verbose)
+		var hash string
+		if *password != "" {
+			dataHash := sha256.Sum256([]byte(*password))
+			hash = hex.EncodeToString(dataHash[:])
+		}
+
+		data := plankcore.PlankEncode(readFiles, filenames, *encrypt, *compress, hash, *verbose)
 
 		if *verbose {
 			fmt.Printf("Encoded\n")
@@ -90,6 +98,11 @@ func main() {
 
 		if !bytes.Equal(magic, fileMagic) {
 			panic("File is not a .plank file!")
+		}
+
+		if *password != "" {
+			dataHash := sha256.Sum256([]byte(*password))
+			*key = hex.EncodeToString(dataHash[:])
 		}
 
 		out := plankcore.PlankDecode(file, *verbose, *verify, *key)
