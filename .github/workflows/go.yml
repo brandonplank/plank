@@ -15,9 +15,7 @@ jobs:
     - uses: wangyoucao577/go-release-action@v1.28
       with:
         github_token: ${{ secrets.TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        pre_command: go get -v github.com/akamensky/argparse
+        pre_command: go get -u
         goversion: "https://dl.google.com/go/go1.18.linux-amd64.tar.gz"
         binary_name: "plank"
         extra_files: LICENSE README.md
